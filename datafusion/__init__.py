@@ -18,6 +18,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import List
 
+import importlib.metadata
 import pyarrow as pa
 
 from ._internal import (
@@ -27,6 +28,9 @@ from ._internal import (
     Expression,
     ScalarUDF,
 )
+
+
+__version__ = importlib.metadata.version("datafusion")
 
 
 __all__ = [

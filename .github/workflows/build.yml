@@ -68,7 +68,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: python-wheel-license
-          path: python
+          path: .
 
       - name: Build Python package
         run: maturin build --release --no-sdist --strip
@@ -98,13 +98,13 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: python-wheel-license
-          path: python
+          path: .
       - run: cat LICENSE.txt
       - name: Build wheels
         run: |
           export RUSTFLAGS='-C target-cpu=skylake'
           docker run --rm -v $(pwd)/..:/io \
-            --workdir /io/python \
+            --workdir /io \
             konstin2/maturin:v0.11.2 \
             build --release --manylinux 2010
       - name: Archive wheels

@@ -49,12 +49,11 @@ jobs:
       - name: Run Linters
         run: |
           source venv/bin/activate
-          flake8 python --ignore=E501
-          black --line-length 79 --diff --check python
+          flake8 --exclude venv --ignore=E501
+          black --line-length 79 --diff --check .
       - name: Run tests
         run: |
           source venv/bin/activate
-          cd python
           maturin develop
           RUST_BACKTRACE=1 pytest -v .
         env:

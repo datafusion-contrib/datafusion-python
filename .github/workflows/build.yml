@@ -71,7 +71,7 @@ jobs:
           path: .
 
       - name: Build Python package
-        run: maturin build --release --no-sdist --strip
+        run: maturin build --release --no-sdist --strip --frozen --locked
 
       - name: List Windows wheels
         if: matrix.os == 'windows-latest'
@@ -106,7 +106,7 @@ jobs:
           docker run --rm -v $(pwd)/..:/io \
             --workdir /io \
             konstin2/maturin:v0.11.2 \
-            build --release --manylinux 2010
+            build --release --manylinux 2010 --frozen --locked
       - name: Archive wheels
         uses: actions/upload-artifact@v2
         with:

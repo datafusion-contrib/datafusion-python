@@ -61,7 +61,7 @@ jobs:
       - name: Run tests
         run: |
           source venv/bin/activate
-          maturin develop
+          maturin develop --cargo-extra-args='--frozen --locked'
           RUST_BACKTRACE=1 pytest -v .
         env:
           CARGO_HOME: "/home/runner/.cargo"

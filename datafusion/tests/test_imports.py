@@ -32,6 +32,10 @@ def test_import_datafusion():
     assert datafusion.__name__ == "datafusion"
 
 
+def test_datafusion_python_version():
+    assert datafusion.__version__ is not None
+
+
 def test_class_module_is_datafusion():
     for klass in [
         ExecutionContext,

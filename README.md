@@ -140,9 +140,7 @@ python3 -m venv venv
 source venv/bin/activate
 # update pip itself if necessary
 python -m pip install -U pip
-# if python -V gives python 3.7
-python -m pip install -r requirements-37.txt
-# if python -V gives python 3.8/3.9/3.10
+# install dependencies
 python -m pip install -r requirements.txt
 ```
 
@@ -161,9 +159,6 @@ To change test dependencies, change the `requirements.in` and run
 ```bash
 # install pip-tools (this can be done only once), also consider running in venv
 python -m pip install pip-tools
-
-# change requirements.in and then run
-python -m piptools compile --generate-hashes -o requirements-37.txt
 # or run this is you are on python 3.8/3.9/3.10
 python -m piptools compile --generate-hashes -o requirements.txt
 ```

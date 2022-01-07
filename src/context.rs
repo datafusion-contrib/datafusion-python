@@ -99,6 +99,7 @@ impl PyExecutionContext {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     #[args(
         schema = "None",
         has_header = "true",
@@ -119,7 +120,7 @@ impl PyExecutionContext {
     ) -> PyResult<()> {
         let path = path
             .to_str()
-            .ok_or(PyValueError::new_err("Unable to convert path to a string"))?;
+            .ok_or_else(|| PyValueError::new_err("Unable to convert path to a string"))?;
         let delimiter = delimiter.as_bytes();
         if delimiter.len() != 1 {
             return Err(PyValueError::new_err(

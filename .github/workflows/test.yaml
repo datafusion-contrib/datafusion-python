@@ -22,41 +22,42 @@ on:
   pull_request:
     branches: [ main ]
 
+concurrency:
+  group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  test-from-toolchain-file:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version:
-          - "3.7"
-          - "3.10"
     steps:
       - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        id: rust-toolchain
+        with:
+          override: true
+          components: rustfmt, clippy
+
+      - uses: actions/setup-python@v2
+        id: install-python
+        with:
+          python-version: "3.10"
 
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
-          path: /home/runner/.cargo
-          key: cargo-maturin-cache-${{ hashFiles('Cargo.lock') }}
+          path: ~/.cargo
+          key: cargo-cache-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}
 
-      - name: Setup Rust Toolchain
-        uses: actions-rs/toolchain@v1
+      - uses: actions-rs/cargo@v1
         with:
-          toolchain: stable
-          profile: default
-          override: true
+          command: fmt
+          args: -- --check
 
-      - name: Cargo Clippy
-        run: cargo clippy
-
-      - name: Cargo Check
-        run: cargo check --all --frozen --locked
-
-      - name: Setup Python Toolchain
-        uses: actions/setup-python@v2
+      - uses: actions-rs/cargo@v1
         with:
-          python-version: ${{ matrix.python-version }}
+          command: clippy
+          args: --all-targets --all-features -- -D clippy::all
 
       - name: Create Virtualenv
         run: |
@@ -65,7 +66,6 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Linters
-        if: ${{ matrix.python-version == '3.10' }}
         run: |
           source venv/bin/activate
           flake8 --exclude venv --ignore=E501
@@ -76,6 +76,47 @@ jobs:
           source venv/bin/activate
           maturin develop --cargo-extra-args='--locked'
           RUST_BACKTRACE=1 pytest -v .
-        env:
-          CARGO_HOME: "/home/runner/.cargo"
-          CARGO_TARGET_DIR: "/home/runner/target"
+
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.7"
+          - "3.10"
+        toolchain:
+          - stable
+          - beta
+          - nightly
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/toolchain@v1
+        id: rust-toolchain
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+
+      - uses: actions/setup-python@v2
+        id: install-python
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache Cargo
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo
+          key: cargo-cache-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Create Virtualenv
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          maturin develop --cargo-extra-args='--locked'
+          RUST_BACKTRACE=1 pytest -v .

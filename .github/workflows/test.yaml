@@ -16,7 +16,11 @@
 # under the License.
 
 name: Python test
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test:
@@ -30,19 +34,27 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Setup Rust toolchain
-        run: |
-          rustup toolchain install stable
-          rustup default stable
-          rustup component add rustfmt
-
       - name: Cache Cargo
         uses: actions/cache@v2
         with:
           path: /home/runner/.cargo
           key: cargo-maturin-cache-${{ hashFiles('Cargo.lock') }}
 
-      - uses: actions/setup-python@v2
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: default
+          override: true
+
+      - name: Cargo Clippy
+        run: cargo clippy
+
+      - name: Cargo Check
+        run: cargo check --all --frozen --locked
+
+      - name: Setup Python Toolchain
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 

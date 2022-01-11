@@ -119,13 +119,11 @@ fn window(
         expr: datafusion::logical_plan::Expr::WindowFunction {
             fun,
             args: args.into_iter().map(|x| x.expr).collect::<Vec<_>>(),
-            partition_by: partition_by
-                .unwrap_or(vec![])
+            partition_by: partition_by.unwrap_or_default()
                 .into_iter()
                 .map(|x| x.expr)
                 .collect::<Vec<_>>(),
-            order_by: order_by
-                .unwrap_or(vec![])
+            order_by: order_by.unwrap_or_default()
                 .into_iter()
                 .map(|x| x.expr)
                 .collect::<Vec<_>>(),

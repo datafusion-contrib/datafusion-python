@@ -62,15 +62,15 @@ impl PyNumberProtocol for PyExpr {
     }
 
     fn __mod__(lhs: PyExpr, rhs: PyExpr) -> PyResult<PyExpr> {
-        Ok(lhs.expr.clone().modulus(rhs.expr).into())
+        Ok(lhs.expr.modulus(rhs.expr).into())
     }
 
     fn __and__(lhs: PyExpr, rhs: PyExpr) -> PyResult<PyExpr> {
-        Ok(lhs.expr.clone().and(rhs.expr).into())
+        Ok(lhs.expr.and(rhs.expr).into())
     }
 
     fn __or__(lhs: PyExpr, rhs: PyExpr) -> PyResult<PyExpr> {
-        Ok(lhs.expr.clone().or(rhs.expr).into())
+        Ok(lhs.expr.or(rhs.expr).into())
     }
 
     fn __invert__(&self) -> PyResult<PyExpr> {
@@ -140,7 +140,7 @@ impl PyMappingProtocol for PyExpr {
     fn __getitem__(&self, key: &str) -> PyResult<PyExpr> {
         Ok(Expr::GetIndexedField {
             expr: Box::new(self.expr.clone()),
-            key: ScalarValue::Utf8(Some(key.to_string()).to_owned()),
+            key: ScalarValue::Utf8(Some(key.to_string())),
         }
         .into())
     }

@@ -133,7 +133,7 @@ impl PyAggregateUDF {
         volatility: &str,
     ) -> PyResult<Self> {
         let function = logical_plan::create_udaf(
-            &name,
+            name,
             input_type,
             Arc::new(return_type),
             parse_volatility(volatility)?,

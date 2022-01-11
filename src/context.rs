@@ -67,7 +67,7 @@ impl PyExecutionContext {
         // generate a random (unique) name for this table
         // table name cannot start with numeric digit
         let name = "c".to_owned()
-            + &Uuid::new_v4()
+            + Uuid::new_v4()
                 .to_simple()
                 .encode_lower(&mut Uuid::encode_buffer());
 

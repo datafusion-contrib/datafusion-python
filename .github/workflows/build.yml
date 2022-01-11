@@ -56,7 +56,7 @@ jobs:
 
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly-2021-10-23
+          toolchain: stable
 
       - name: Install dependencies
         run: |

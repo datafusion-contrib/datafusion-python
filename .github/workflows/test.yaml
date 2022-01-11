@@ -32,8 +32,8 @@ jobs:
 
       - name: Setup Rust toolchain
         run: |
-          rustup toolchain install nightly-2021-10-23
-          rustup default nightly-2021-10-23
+          rustup toolchain install stable
+          rustup default stable
           rustup component add rustfmt
 
       - name: Cache Cargo

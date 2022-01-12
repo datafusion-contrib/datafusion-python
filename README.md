@@ -17,7 +17,9 @@
   under the License.
 -->
 
-## DataFusion in Python
+# DataFusion in Python
+
+[![Python test](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/test.yaml/badge.svg)](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/test.yaml)
 
 This is a Python library that binds to [Apache Arrow](https://arrow.apache.org/) in-memory query engine [DataFusion](https://github.com/apache/arrow-datafusion).
 

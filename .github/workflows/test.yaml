@@ -27,56 +27,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-from-toolchain-file:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions-rs/toolchain@v1
-        id: rust-toolchain
-        with:
-          override: true
-          components: rustfmt, clippy
-
-      - uses: actions/setup-python@v2
-        id: install-python
-        with:
-          python-version: "3.10"
-
-      - name: Cache Cargo
-        uses: actions/cache@v2
-        with:
-          path: ~/.cargo
-          key: cargo-cache-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}
-
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
-
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-targets --all-features -- -D clippy::all
-
-      - name: Create Virtualenv
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-
-      - name: Run Linters
-        run: |
-          source venv/bin/activate
-          flake8 --exclude venv --ignore=E501
-          black --line-length 79 --diff --check .
-
-      - name: Run tests
-        run: |
-          source venv/bin/activate
-          maturin develop --cargo-extra-args='--locked'
-          RUST_BACKTRACE=1 pytest -v .
-
   test-matrix:
     runs-on: ubuntu-latest
     strategy:
@@ -92,14 +42,15 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust Toolchain
+        uses: actions-rs/toolchain@v1
         id: rust-toolchain
         with:
           toolchain: ${{ matrix.toolchain }}
           override: true
 
-      - uses: actions/setup-python@v2
-        id: install-python
+      - name: Setup Python
+        uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -109,11 +60,32 @@ jobs:
           path: ~/.cargo
           key: cargo-cache-${{ steps.rust-toolchain.outputs.rustc_hash }}-${{ hashFiles('Cargo.lock') }}
 
+      - name: Check Formatting
+        uses: actions-rs/cargo@v1
+        if: ${{ python-version == '3.10' && toolchain == 'stable' }}
+        with:
+          command: fmt
+          args: -- --check
+
+      - name: Run Clippy
+        uses: actions-rs/cargo@v1
+        if: ${{ python-version == '3.10' && toolchain == 'stable' }}
+        with:
+          command: clippy
+          args: --all-targets --all-features -- -D clippy::all
+
       - name: Create Virtualenv
         run: |
           python -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
+
+      - name: Run Python Linters
+        if: ${{ python-version == '3.10' && toolchain == 'stable' }}
+        run: |
+          source venv/bin/activate
+          flake8 --exclude venv --ignore=E501
+          black --line-length 79 --diff --check .
 
       - name: Run tests
         run: |

@@ -37,9 +37,9 @@ impl From<PyExpr> for Expr {
     }
 }
 
-impl Into<PyExpr> for Expr {
-    fn into(self) -> PyExpr {
-        PyExpr { expr: self }
+impl From<Expr> for PyExpr {
+    fn from(expr: Expr) -> PyExpr {
+        PyExpr { expr }
     }
 }
 

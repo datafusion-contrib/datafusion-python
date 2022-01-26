@@ -24,10 +24,10 @@ use datafusion::arrow::datatypes::DataType;
 use datafusion::arrow::pyarrow::PyArrowConvert;
 use datafusion::error::{DataFusionError, Result};
 use datafusion::logical_plan;
-use datafusion::physical_plan::aggregates::AccumulatorFunctionImplementation;
-use datafusion::physical_plan::udaf::AggregateUDF;
-use datafusion::physical_plan::Accumulator;
-use datafusion::scalar::ScalarValue;
+use datafusion_common::ScalarValue;
+use datafusion_expr::Accumulator;
+use datafusion_expr::AccumulatorFunctionImplementation;
+use datafusion_expr::AggregateUDF;
 
 use crate::expression::PyExpr;
 use crate::utils::parse_volatility;
@@ -47,16 +47,6 @@ impl Accumulator for RustAccumulator {
     fn state(&self) -> Result<Vec<ScalarValue>> {
         Python::with_gil(|py| self.accum.as_ref(py).call_method0("state")?.extract())
             .map_err(|e| DataFusionError::Execution(format!("{}", e)))
-    }
-
-    fn update(&mut self, _values: &[ScalarValue]) -> Result<()> {
-        // no need to implement as datafusion does not use it
-        todo!()
-    }
-
-    fn merge(&mut self, _states: &[ScalarValue]) -> Result<()> {
-        // no need to implement as datafusion does not use it
-        todo!()
     }
 
     fn evaluate(&self) -> Result<ScalarValue> {
@@ -144,7 +134,6 @@ impl PyAggregateUDF {
     }
 
     /// creates a new PyExpr with the call of the udf
-    #[call]
     #[args(args = "*")]
     fn __call__(&self, args: Vec<PyExpr>) -> PyResult<PyExpr> {
         let args = args.iter().map(|e| e.expr.clone()).collect();

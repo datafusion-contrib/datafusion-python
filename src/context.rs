@@ -31,6 +31,7 @@ use datafusion::prelude::CsvReadOptions;
 
 use crate::catalog::PyCatalog;
 use crate::dataframe::PyDataFrame;
+use crate::dataset::PyArrowDatasetTable;
 use crate::errors::DataFusionError;
 use crate::udf::PyScalarUDF;
 use crate::utils::wait_for_future;
@@ -60,10 +61,7 @@ impl PyExecutionContext {
         Ok(PyDataFrame::new(df))
     }
 
-    fn create_dataframe(
-        &mut self,
-        partitions: Vec<Vec<RecordBatch>>,
-    ) -> PyResult<PyDataFrame> {
+    fn create_dataframe(&mut self, partitions: Vec<Vec<RecordBatch>>) -> PyResult<PyDataFrame> {
         let table = MemTable::try_new(partitions[0][0].schema(), partitions)
             .map_err(DataFusionError::from)?;
 
@@ -140,6 +138,13 @@ impl PyExecutionContext {
         let result = self.ctx.register_csv(name, path, options);
         wait_for_future(py, result).map_err(DataFusionError::from)?;
 
+        Ok(())
+    }
+
+    fn register_dataset(&mut self, name: &str, dataset: PyArrowDatasetTable) -> PyResult<()> {
+        self.ctx
+            .register_table(name, Arc::new(dataset))
+            .map_err(DataFusionError::from)?;
         Ok(())
     }
 

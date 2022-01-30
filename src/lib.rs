@@ -20,6 +20,7 @@ use pyo3::prelude::*;
 mod catalog;
 mod context;
 mod dataframe;
+mod dataset;
 mod errors;
 mod expression;
 mod functions;

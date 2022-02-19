@@ -24,15 +24,14 @@ use datafusion::datasource::datasource::TableProviderFilterPushDown;
 use datafusion::datasource::TableProvider;
 use datafusion::error::DataFusionError;
 use datafusion::error::Result;
-use datafusion::logical_plan::Expr;
-use datafusion::logical_plan::Operator;
+use datafusion::execution::runtime_env::RuntimeEnv;
+use datafusion::logical_plan::{Expr, ExpressionVisitor, Operator, Recursion};
 use datafusion::physical_plan::metrics::{ExecutionPlanMetricsSet, MetricsSet};
 use datafusion::physical_plan::stream::RecordBatchReceiverStream;
 use datafusion::physical_plan::{
     DisplayFormatType, ExecutionPlan, Partitioning, SendableRecordBatchStream, Statistics,
 };
-use datafusion::scalar::ScalarValue::*;
-use pyo3::conversion::ToPyObject;
+use pyo3::conversion::PyArrowConvert;
 use pyo3::exceptions::{PyAssertionError, PyNotImplementedError, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -79,45 +78,30 @@ impl TableProvider for PyArrowDatasetTable {
     async fn scan(
         &self,
         projection: &Option<Vec<usize>>,
-        batch_size: usize,
         filters: &[Expr],
         limit: Option<usize>,
     ) -> Result<Arc<dyn ExecutionPlan>> {
-        let scanner = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
-            let scanner_kwargs = PyDict::new(py);
-            scanner_kwargs.set_item("batch_size", batch_size)?;
+        let combined_filter = filters
+            .iter()
+            .map(|f| f.clone())
+            .reduce(|acc, item| acc.and(item));
+        let scanner = PyArrowDatasetScanner::make(
+            self.dataset.clone(),
+            self.schema.clone(),
+            projection,
+            combined_filter.clone(),
+            limit,
+            10, // Dummy value; scanner recreated later with runtime batch_size.
+        );
 
-            let combined_filter = filters
-                .iter()
-                .map(|f| f.clone())
-                .reduce(|acc, item| acc.and(item));
-            if let Some(expr) = combined_filter {
-                scanner_kwargs.set_item("filter", expr_to_pyarrow(&expr)?)?;
-            };
-
-            if let Some(indices) = projection {
-                let column_names: Vec<String> = self
-                    .schema
-                    .project(indices)?
-                    .fields()
-                    .iter()
-                    .map(|field| field.name().clone())
-                    .collect();
-                scanner_kwargs.set_item("columns", column_names)?;
-            }
-
-            Ok(self
-                .dataset
-                .call_method(py, "scanner", (), Some(scanner_kwargs))?
-                .extract(py)?)
-        });
         match scanner {
             Ok(scanner) => Ok(Arc::new(PyArrowDatasetExec {
-                scanner: PyArrowDatasetScanner {
-                    scanner: Arc::new(scanner),
-                    limit,
-                    schema: self.schema.clone(),
-                },
+                dataset: self.dataset.clone(),
+                scanner,
+                projection: projection.clone(),
+                filter: combined_filter,
+                limit,
+                schema: self.schema.clone(),
                 projected_statistics: Statistics::default(),
                 metrics: ExecutionPlanMetricsSet::new(),
             })),
@@ -158,19 +142,63 @@ impl Clone for PyArrowDatasetScanner {
 }
 
 impl PyArrowDatasetScanner {
-    fn projected_schema(self) -> SchemaRef {
-        self.schema
+    fn make(
+        dataset: Py<PyAny>,
+        schema: SchemaRef,
+        projection: &Option<Vec<usize>>,
+        filter: Option<Expr>,
+        limit: Option<usize>,
+        batch_size: usize,
+    ) -> Result<Self> {
+        let scanner = Python::with_gil(|py| -> PyResult<Py<PyAny>> {
+            let scanner_kwargs = PyDict::new(py);
+            scanner_kwargs.set_item("batch_size", batch_size)?;
+            if let Some(expr) = filter {
+                scanner_kwargs.set_item("filter", expr_to_pyarrow(&expr)?)?;
+            };
+
+            if let Some(indices) = projection {
+                let column_names: Vec<String> = schema
+                    .project(indices)?
+                    .fields()
+                    .iter()
+                    .map(|field| field.name().clone())
+                    .collect();
+                scanner_kwargs.set_item("columns", column_names)?;
+            }
+
+            Ok(dataset
+                .call_method(py, "scanner", (), Some(scanner_kwargs))?
+                .extract(py)?)
+        });
+        match scanner {
+            Ok(scanner) => Ok(Self {
+                scanner: Arc::new(scanner),
+                limit,
+                schema,
+            }),
+            Err(err) => Err(DataFusionError::Execution(err.to_string())),
+        }
+    }
+
+    fn projected_schema(&self) -> SchemaRef {
+        self.schema.clone()
     }
 
     fn get_batches(&self, response_tx: Sender<ArrowResult<RecordBatch>>) -> Result<()> {
         let mut count = 0;
+
+        // TODO: Avoid Python GIL with Arrow C Stream interface?
+        // https://arrow.apache.org/docs/dev/format/CStreamInterface.html
+        // https://github.com/apache/arrow/blob/cc4e2a54309813e6bbbb36ba50bcd22a7b71d3d9/python/pyarrow/ipc.pxi#L620
+        let batch_iter = Python::with_gil(|py| self.scanner.call_method0(py, "to_batches"))
+            .map_err(|err| DataFusionError::Execution(err.to_string()))?;
 
         loop {
             // TODO: Avoid Python GIL with Arrow C Stream interface?
             // https://arrow.apache.org/docs/dev/format/CStreamInterface.html
             // https://github.com/apache/arrow/blob/cc4e2a54309813e6bbbb36ba50bcd22a7b71d3d9/python/pyarrow/ipc.pxi#L620
             let res = Python::with_gil(|py| -> PyResult<Option<RecordBatch>> {
-                let batch_iter = self.scanner.call_method0(py, "to_batches")?;
                 let py_batch_res = batch_iter.call_method0(py, "__next__");
                 match py_batch_res {
                     Ok(py_batch) => Ok(Some(RecordBatch::from_pyarrow(py_batch.extract(py)?)?)),
@@ -226,7 +254,12 @@ fn send_result(
 /// Execution plan for scanning a PyArrow dataset
 #[derive(Debug, Clone)]
 pub struct PyArrowDatasetExec {
+    dataset: Py<PyAny>,
     scanner: PyArrowDatasetScanner,
+    projection: Option<Vec<usize>>,
+    filter: Option<Expr>,
+    limit: Option<usize>,
+    schema: SchemaRef,
     projected_statistics: Statistics,
     /// Execution metrics
     metrics: ExecutionPlanMetricsSet,
@@ -240,7 +273,7 @@ impl ExecutionPlan for PyArrowDatasetExec {
     }
 
     fn schema(&self) -> SchemaRef {
-        self.scanner.clone().projected_schema().clone()
+        self.scanner.projected_schema()
     }
 
     fn children(&self) -> Vec<Arc<dyn ExecutionPlan>> {
@@ -267,22 +300,35 @@ impl ExecutionPlan for PyArrowDatasetExec {
         }
     }
 
-    async fn execute(&self, _partition_index: usize) -> Result<SendableRecordBatchStream> {
+    async fn execute(
+        &self,
+        _partition_index: usize,
+        runtime: Arc<RuntimeEnv>,
+    ) -> Result<SendableRecordBatchStream> {
+        // need to use runtime.batch_size
         let (response_tx, response_rx): (
             Sender<ArrowResult<RecordBatch>>,
             Receiver<ArrowResult<RecordBatch>>,
         ) = channel(2);
 
-        let cloned = self.scanner.clone();
+        // Have to recreate with correct batch size
+        let scanner = PyArrowDatasetScanner::make(
+            self.dataset.clone(),
+            self.schema.clone(),
+            &self.projection,
+            self.filter.clone(),
+            self.limit,
+            runtime.batch_size,
+        )?;
 
         let join_handle = task::spawn_blocking(move || {
-            if let Err(e) = cloned.get_batches(response_tx) {
+            if let Err(e) = scanner.get_batches(response_tx) {
                 println!("Dataset scanner thread terminated due to error: {:?}", e);
             }
         });
 
         Ok(RecordBatchReceiverStream::create(
-            &self.scanner.clone().projected_schema(),
+            &self.scanner.projected_schema(),
             response_rx,
             join_handle,
         ))
@@ -310,106 +356,82 @@ impl ExecutionPlan for PyArrowDatasetExec {
     }
 }
 
-// TODO: replace with impl PyArrowConvert for Expr
-// https://github.com/apache/arrow-rs/blob/master/arrow/src/pyarrow.rs
-fn expr_to_pyarrow(expr: &Expr) -> PyResult<PyObject> {
-    Python::with_gil(|py| -> PyResult<PyObject> {
-        let ds = PyModule::import(py, "pyarrow.dataset")?;
-        let field = ds.getattr("field")?;
+struct PyArrowExprVisitor {
+    result_stack: Vec<PyObject>,
+}
 
-        let mut worklist: Vec<&Expr> = Vec::new(); // Expressions to parse
-        let mut result_list: Vec<PyObject> = Vec::new(); // Expressions that have been parsed
-        worklist.push(expr);
+impl ExpressionVisitor for PyArrowExprVisitor {
+    fn pre_visit(mut self, _expr: &Expr) -> Result<Recursion<Self>> {
+        Ok(Recursion::Continue(self))
+    }
 
-        while let Some(parent) = worklist.pop() {
-            match parent {
+    fn post_visit(mut self, expr: &Expr) -> Result<Self> {
+        let res = Python::with_gil(|py| -> PyResult<()> {
+            let ds = PyModule::import(py, "pyarrow.dataset")?;
+            let field = ds.getattr("field")?;
+
+            match expr {
                 Expr::Column(col) => {
-                    result_list.push(field.call1((col.name.clone(),))?.into());
+                    self.result_stack
+                        .push(field.call1((col.name.clone(),))?.into());
                 }
-                // TODO: finish implementing PyArrowConvert for ScalarValue?
-                // https://github.com/apache/arrow-datafusion/blob/master/datafusion/src/pyarrow.rs
                 Expr::Literal(scalar) => {
-                    match scalar {
-                        Boolean(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Float32(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Float64(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Int8(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Int16(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Int32(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Int64(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        UInt8(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        UInt16(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        UInt32(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        UInt64(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        Utf8(val) => {
-                            result_list.push(val.to_object(py));
-                        }
-                        // TODO: indicate which somehow?
-                        _ => {
-                            return Err(PyNotImplementedError::new_err(
-                                "Scalar type not yet supported",
-                            ));
-                        }
-                    }
+                    self.result_stack.push(scalar.to_pyarrow(py)?);
                 }
-                Expr::BinaryExpr { left, right, op } => {
-                    let left_val = result_list.pop();
-                    let right_val = result_list.pop();
-                    match (left_val, right_val) {
-                        (Some(left_val), Some(right_val)) => {
-                            match op {
-                                // pull children off of result_list
-                                Operator::Eq => result_list.push(left_val.call_method1(
-                                    py,
-                                    "__eq__",
-                                    (right_val,),
-                                )?),
-                                Operator::NotEq => result_list.push(left_val.call_method1(
-                                    py,
-                                    "__ne__",
-                                    (right_val,),
-                                )?),
-                                _ => {
-                                    return Err(PyNotImplementedError::new_err(
-                                        "Operation not yet supported",
-                                    ));
-                                }
-                            }
-                        }
-                        (None, None) => {
-                            // Need to process children first
-                            worklist.push(parent);
-                            worklist.push(&**left);
-                            worklist.push(&**right);
-                        }
-                        _ => {
-                            return Err(PyNotImplementedError::new_err(
-                                "Operation not yet supported",
-                            ));
-                        }
+                Expr::BinaryExpr {
+                    left: _,
+                    right: _,
+                    op,
+                } => {
+                    // Must be pop'd in reverse order of visitation
+                    let right_val = self.result_stack.pop().unwrap();
+                    let left_val = self.result_stack.pop().unwrap();
+
+                    let method = match op {
+                        Operator::Eq => Ok("__eq__"),
+                        Operator::NotEq => Ok("__ne__"),
+                        Operator::Lt => Ok("__lt__"),
+                        Operator::LtEq => Ok("__le__"),
+                        Operator::Gt => Ok("__gt__"),
+                        Operator::GtEq => Ok("__gt__"),
+                        Operator::Plus => Ok("__add__"),
+                        Operator::Minus => Ok("__sub__"),
+                        Operator::Multiply => Ok("__mul__"),
+                        Operator::Divide => Ok("__div__"),
+                        Operator::Modulo => Ok("__mod__"),
+                        Operator::Or => Ok("__or__"),
+                        Operator::And => Ok("__and__"),
+                        _ => Err(PyNotImplementedError::new_err(
+                            "Operation not yet supported",
+                        )),
+                    };
+
+                    self.result_stack
+                        .push(left_val.call_method1(py, method?, (right_val,))?);
+                }
+                Expr::Not(expr) => {
+                    let val = self.result_stack.pop().unwrap();
+
+                    self.result_stack.push(val.call_method0(py, "__not__")?);
+                }
+                Expr::Between {
+                    expr: _,
+                    negated,
+                    low: _,
+                    high: _,
+                } => {
+                    // Must be pop'd in reverse order of visitation
+                    let high_val = self.result_stack.pop().unwrap();
+                    let low_val = self.result_stack.pop().unwrap();
+                    let expr_val = self.result_stack.pop().unwrap();
+
+                    let gte_val = expr_val.call_method1(py, "__ge__", (low_val,))?;
+                    let lte_val = expr_val.call_method1(py, "__le__", (high_val,))?;
+                    let mut val = gte_val.call_method1(py, "__and__", (lte_val,))?;
+                    if *negated {
+                        val = val.call_method0(py, "__not__")?;
                     }
+                    self.result_stack.push(val);
                 }
                 _ => {
                     return Err(PyNotImplementedError::new_err(
@@ -417,10 +439,28 @@ fn expr_to_pyarrow(expr: &Expr) -> PyResult<PyObject> {
                     ));
                 }
             }
-        }
+            Ok(())
+        });
 
-        match result_list.len() {
-            1 => Ok(result_list.pop().unwrap()),
+        match res {
+            Ok(_) => Ok(self),
+            Err(err) => Err(DataFusionError::External(Box::new(err))),
+        }
+    }
+}
+
+// TODO: replace with some Substrait conversion?
+// https://github.com/apache/arrow-rs/blob/master/arrow/src/pyarrow.rs
+fn expr_to_pyarrow(expr: &Expr) -> PyResult<PyObject> {
+    Python::with_gil(|py| -> PyResult<PyObject> {
+        let visitor = PyArrowExprVisitor {
+            result_stack: Vec::new(),
+        };
+
+        let mut final_visitor = expr.accept(visitor)?;
+
+        match final_visitor.result_stack.len() {
+            1 => Ok(final_visitor.result_stack.pop().unwrap()),
             _ => Err(PyAssertionError::new_err("something went wrong")),
         }
     })

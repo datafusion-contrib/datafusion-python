@@ -49,16 +49,6 @@ impl Accumulator for RustAccumulator {
             .map_err(|e| DataFusionError::Execution(format!("{}", e)))
     }
 
-    fn update(&mut self, _values: &[ScalarValue]) -> Result<()> {
-        // no need to implement as datafusion does not use it
-        todo!()
-    }
-
-    fn merge(&mut self, _states: &[ScalarValue]) -> Result<()> {
-        // no need to implement as datafusion does not use it
-        todo!()
-    }
-
     fn evaluate(&self) -> Result<ScalarValue> {
         Python::with_gil(|py| self.accum.as_ref(py).call_method0("evaluate")?.extract())
             .map_err(|e| DataFusionError::Execution(format!("{}", e)))
@@ -144,7 +134,6 @@ impl PyAggregateUDF {
     }
 
     /// creates a new PyExpr with the call of the udf
-    #[call]
     #[args(args = "*")]
     fn __call__(&self, args: Vec<PyExpr>) -> PyResult<PyExpr> {
         let args = args.iter().map(|e| e.expr.clone()).collect();

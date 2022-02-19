@@ -19,8 +19,10 @@ use std::sync::Arc;
 
 use pyo3::prelude::*;
 
+use datafusion::arrow::array::StringArray;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::pyarrow::PyArrowConvert;
+use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::arrow::util::pretty;
 use datafusion::dataframe::DataFrame;
 use datafusion::logical_plan::JoinType;
@@ -98,6 +100,33 @@ impl PyDataFrame {
         let df = self.df.limit(num)?;
         let batches = wait_for_future(py, df.collect())?;
         Ok(pretty::print_batches(&batches)?)
+    }
+
+    #[args(verbose = false, analyze = false)]
+    fn explain(&self, verbose: bool, analyze: bool, py: Python) -> PyResult<()> {
+        let df = self.df.explain(verbose, analyze)?;
+        let batches = wait_for_future(py, df.collect())?;
+        let batch = RecordBatch::concat(&batches[0].schema(), &batches)?;
+
+        let plan_types = batch
+            .column(0)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("Plan types is not a String anymore");
+        let plans = batch
+            .column(1)
+            .as_any()
+            .downcast_ref::<StringArray>()
+            .expect("Plan is not a String anymore");
+
+        for (plan_type, plan) in plan_types.iter().zip(plans.iter()) {
+            if plan_type.is_some() && plan.is_some() {
+                println!("{}", plan_type.unwrap());
+                println!("{}", plan.unwrap());
+            }
+        }
+
+        Ok(())
     }
 
     fn join(

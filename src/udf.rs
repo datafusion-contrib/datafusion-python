@@ -24,9 +24,7 @@ use datafusion::arrow::datatypes::DataType;
 use datafusion::arrow::pyarrow::PyArrowConvert;
 use datafusion::error::DataFusionError;
 use datafusion::logical_plan;
-use datafusion::physical_plan::functions::{
-    make_scalar_function, ScalarFunctionImplementation,
-};
+use datafusion::physical_plan::functions::{make_scalar_function, ScalarFunctionImplementation};
 use datafusion::physical_plan::udf::ScalarUDF;
 
 use crate::expression::PyExpr;
@@ -89,7 +87,6 @@ impl PyScalarUDF {
     }
 
     /// creates a new PyExpr with the call of the udf
-    #[call]
     #[args(args = "*")]
     fn __call__(&self, args: Vec<PyExpr>) -> PyResult<PyExpr> {
         let args = args.iter().map(|e| e.expr.clone()).collect();

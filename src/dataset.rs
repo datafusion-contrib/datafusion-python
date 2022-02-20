@@ -31,7 +31,6 @@ use datafusion::physical_plan::stream::RecordBatchReceiverStream;
 use datafusion::physical_plan::{
     DisplayFormatType, ExecutionPlan, Partitioning, SendableRecordBatchStream, Statistics,
 };
-use pyo3::conversion::PyArrowConvert;
 use pyo3::exceptions::{PyAssertionError, PyNotImplementedError, PyStopIteration};
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
@@ -46,6 +45,24 @@ use tokio::{
 pub struct PyArrowDatasetTable {
     dataset: Py<PyAny>,
     schema: SchemaRef,
+}
+
+impl PyArrowDatasetTable {
+    /// Returns true if expression can by evaluated by pyarrow against this dataset
+    fn expression_valid(&self, expr: &Expr) -> bool {
+        if let Ok(pyarrow_expr) = expr_to_pyarrow(expr) {
+            let res = Python::with_gil(|py| -> PyResult<()> {
+                let scanner_kwargs = PyDict::new(py);
+                scanner_kwargs.set_item("filter", pyarrow_expr)?;
+                self.dataset
+                    .call_method(py, "scanner", (), Some(scanner_kwargs))?;
+                Ok(())
+            });
+            res.is_ok()
+        } else {
+            false
+        }
+    }
 }
 
 impl<'py> FromPyObject<'py> for PyArrowDatasetTable {
@@ -81,8 +98,11 @@ impl TableProvider for PyArrowDatasetTable {
         filters: &[Expr],
         limit: Option<usize>,
     ) -> Result<Arc<dyn ExecutionPlan>> {
+        // Filtering is only inexact because of expression conversion, but the
+        // PyArrow scanner does apply all filters given to it.
         let combined_filter = filters
             .iter()
+            .filter(|expr| self.expression_valid(expr))
             .map(|f| f.clone())
             .reduce(|acc, item| acc.and(item));
         let scanner = PyArrowDatasetScanner::make(
@@ -110,7 +130,7 @@ impl TableProvider for PyArrowDatasetTable {
     }
 
     fn supports_filter_pushdown(&self, _: &Expr) -> Result<TableProviderFilterPushDown> {
-        Ok(TableProviderFilterPushDown::Exact)
+        Ok(TableProviderFilterPushDown::Inexact)
     }
 }
 
@@ -339,9 +359,8 @@ impl ExecutionPlan for PyArrowDatasetExec {
             DisplayFormatType::Default => {
                 write!(
                     f,
-                    // TODO: better fmt
-                    "PyArrowDatasetExec: limit={:?}, partitions=...",
-                    self.scanner.limit
+                    "PyArrowDatasetExec: filter={:?}, limit={:?}, projection={:?} partitions=...",
+                    self.filter, self.scanner.limit, self.projection
                 )
             }
         }

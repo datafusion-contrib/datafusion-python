@@ -21,7 +21,6 @@ isort
 maturin
 mypy
 numpy
-pandas
 pyarrow
 pytest
 toml

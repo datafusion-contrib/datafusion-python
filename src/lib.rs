@@ -27,6 +27,9 @@ mod udaf;
 mod udf;
 mod utils;
 
+#[global_allocator]
+static ALLOC: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
+
 /// Low-level DataFusion internal package.
 ///
 /// The higher-level public API is defined in pure python files under the

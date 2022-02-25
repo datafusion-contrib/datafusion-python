@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+use mimalloc::MiMalloc;
 use pyo3::prelude::*;
 
 mod catalog;
@@ -26,6 +27,9 @@ mod functions;
 mod udaf;
 mod udf;
 mod utils;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 /// Low-level DataFusion internal package.
 ///

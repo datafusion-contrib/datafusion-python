@@ -35,6 +35,7 @@ datafusion = { version = "^7.0.0", features = ["pyarrow"] }
 datafusion-expr = { version = "^7.0.0" }
 datafusion-common = { version = "^7.0.0", features = ["pyarrow"] }
 uuid = { version = "0.8", features = ["v4"] }
+mimalloc = { version = "*", default-features = false }
 
 [lib]
 name = "_internal"

@@ -32,7 +32,7 @@ jobs:
           toolchain: stable
           override: true
       - name: Generate license file
-        run: python ../dev/create_license.py
+        run: python ./dev/create_license.py
       - uses: actions/upload-artifact@v2
         with:
           name: python-wheel-license
@@ -61,7 +61,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install maturin==0.12.6
+          pip install maturin==0.12.10
 
       - run: rm LICENSE.txt
       - name: Download LICENSE.txt
@@ -71,7 +71,7 @@ jobs:
           path: .
 
       - name: Build Python package
-        run: maturin build --release --no-sdist --strip --locked
+        run: maturin build --release --strip --cargo-extra-args="--locked"
 
       - name: List Windows wheels
         if: matrix.os == 'windows-latest'
@@ -103,10 +103,10 @@ jobs:
       - name: Build wheels
         run: |
           export RUSTFLAGS='-C target-cpu=skylake'
-          docker run --rm -v $(pwd)/..:/io \
+          docker run --rm -v $(pwd):/io \
             --workdir /io \
-            konstin2/maturin:v0.12.6 \
-            build --release --manylinux 2010 --locked
+            konstin2/maturin:v0.12.10 \
+            build --release --manylinux 2010 --cargo-extra-args="--locked"
       - name: Archive wheels
         uses: actions/upload-artifact@v2
         with:

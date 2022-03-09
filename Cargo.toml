@@ -17,7 +17,7 @@
 
 [package]
 name = "datafusion-python"
-version = "0.4.0"
+version = "0.5.0"
 homepage = "https://github.com/apache/arrow"
 repository = "https://github.com/apache/arrow"
 authors = ["Apache Arrow <dev@arrow.apache.org>"]

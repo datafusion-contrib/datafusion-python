@@ -33,12 +33,16 @@ jobs:
       fail-fast: false
       matrix:
         python-version:
-          - "3.7"
           - "3.10"
         toolchain:
-          - stable
-          - beta
-          - nightly
+          - "stable"
+          - "beta"
+          # we are not that much eager in walking on the edge yet
+          # - nightly
+        # build stable for only 3.7
+        include:
+          - python-version: "3.7"
+            toolchain: "stable"
     steps:
       - uses: actions/checkout@v2
 

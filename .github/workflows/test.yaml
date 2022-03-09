@@ -18,9 +18,9 @@
 name: Python test
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 concurrency:
   group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
@@ -74,11 +74,19 @@ jobs:
           command: clippy
           args: --all-targets --all-features -- -D clippy::all
 
-      - name: Create Virtualenv
+      - name: Create Virtualenv (3.10)
+        if: ${{ matrix.python-version == '3.10' }}
         run: |
           python -m venv venv
           source venv/bin/activate
-          pip install -r requirements.txt
+          pip install -r requirements-310.txt
+
+      - name: Create Virtualenv (3.7)
+        if: ${{ matrix.python-version == '3.7' }}
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements-37.txt
 
       - name: Run Python Linters
         if: ${{ matrix.python-version == '3.10' && matrix.toolchain == 'stable' }}

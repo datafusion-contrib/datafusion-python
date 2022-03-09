@@ -133,17 +133,15 @@ Bootstrap:
 
 ```bash
 # fetch this repo
-git clone git@github.com:apache/arrow-datafusion.git
-# change to python directory
-cd arrow-datafusion/python
+git clone git@github.com:datafusion-contrib/datafusion-python.git
 # prepare development environment (used to build wheel / install in development)
 python3 -m venv venv
 # activate the venv
 source venv/bin/activate
 # update pip itself if necessary
 python -m pip install -U pip
-# install dependencies
-python -m pip install -r requirements.txt
+# install dependencies (for Python 3.8+)
+python -m pip install -r requirements-310.txt
 ```
 
 Whenever rust code changes (your changes or via `git pull`):
@@ -161,8 +159,7 @@ To change test dependencies, change the `requirements.in` and run
 ```bash
 # install pip-tools (this can be done only once), also consider running in venv
 python -m pip install pip-tools
-# or run this is you are on python 3.8/3.9/3.10
-python -m piptools compile --generate-hashes -o requirements.txt
+python -m piptools compile --generate-hashes -o requirements-310.txt
 ```
 
 To update dependencies, run with `-U`

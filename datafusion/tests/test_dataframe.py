@@ -185,7 +185,7 @@ def test_explain(df):
     df = df.select(
         column("a") + column("b"),
         column("a") - column("b"),
-        )
+    )
 
     df = df.explain(False, False)
 

@@ -127,4 +127,12 @@ impl PyDataFrame {
             .join(right.df, join_type, &join_keys.0, &join_keys.1)?;
         Ok(Self::new(df))
     }
+
+    /// Print the query plan
+    #[args(verbose = false, analyze = false)]
+    fn explain(&self, py: Python, verbose: bool, analyze: bool) -> PyResult<()> {
+        let df = self.df.explain(verbose, analyze)?;
+        let batches = wait_for_future(py, df.collect())?;
+        Ok(pretty::print_batches(&batches)?)
+    }
 }

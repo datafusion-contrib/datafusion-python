@@ -179,3 +179,17 @@ def test_struct_select(struct_df):
 
     assert result.column(0) == pa.array([5, 7, 9])
     assert result.column(1) == pa.array([-3, -3, -3])
+
+
+def test_explain(df):
+    df = df.select(
+        column("a") + column("b"),
+        column("a") - column("b"),
+        )
+
+    df = df.explain(False, False)
+
+    # execute and collect the first (and only) batch
+    result = df.collect()[0]
+
+    assert result.column(0) == pa.array(["logical_plan", "physical_plan"])

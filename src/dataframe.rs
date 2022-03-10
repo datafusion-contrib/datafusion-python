@@ -127,4 +127,9 @@ impl PyDataFrame {
             .join(right.df, join_type, &join_keys.0, &join_keys.1)?;
         Ok(Self::new(df))
     }
+
+    fn explain(&self, verbose: bool, analyze: bool) -> PyResult<Self> {
+        let df = self.df.explain(verbose, analyze)?;
+        Ok(Self::new(df))
+    }
 }

@@ -186,10 +186,4 @@ def test_explain(df):
         column("a") + column("b"),
         column("a") - column("b"),
     )
-
-    df = df.explain(False, False)
-
-    # execute and collect the first (and only) batch
-    result = df.collect()[0]
-
-    assert result.column(0) == pa.array(["logical_plan", "physical_plan"])
+    df.explain()

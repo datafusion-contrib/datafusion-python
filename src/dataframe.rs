@@ -128,8 +128,11 @@ impl PyDataFrame {
         Ok(Self::new(df))
     }
 
-    fn explain(&self, verbose: bool, analyze: bool) -> PyResult<Self> {
+    /// Print the query plan
+    #[args(verbose = false, analyze = false)]
+    fn explain(&self, py: Python, verbose: bool, analyze: bool) -> PyResult<()> {
         let df = self.df.explain(verbose, analyze)?;
-        Ok(Self::new(df))
+        let batches = wait_for_future(py, df.collect())?;
+        Ok(pretty::print_batches(&batches)?)
     }
 }

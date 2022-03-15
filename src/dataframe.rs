@@ -52,6 +52,12 @@ impl PyDataFrame {
     }
 
     #[args(args = "*")]
+    fn select_columns(&self, args: Vec<&str>) -> PyResult<Self> {
+        let df = self.df.select_columns(&args)?;
+        Ok(Self::new(df))
+    }
+
+    #[args(args = "*")]
     fn select(&self, args: Vec<PyExpr>) -> PyResult<Self> {
         let expr = args.into_iter().map(|e| e.into()).collect();
         let df = self.df.select(expr)?;

@@ -39,10 +39,8 @@ Simple usage:
 
 ```python
 import datafusion
+from datafusion import functions as f
 import pyarrow
-
-# an alias
-f = datafusion.functions
 
 # create a context
 ctx = datafusion.ExecutionContext()
@@ -123,6 +121,14 @@ df = df.aggregate(
 pip install datafusion
 # or
 python -m pip install datafusion
+```
+
+You can verify the installation by running:
+
+```python
+>>> import datafusion
+>>> datafusion.__version__
+'0.5.0'
 ```
 
 ## How to develop

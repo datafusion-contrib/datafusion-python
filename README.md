@@ -140,7 +140,7 @@ You can verify the installation by running:
 ```python
 >>> import datafusion
 >>> datafusion.__version__
-'0.5.0'
+'0.5.1'
 ```
 
 ## How to develop

@@ -21,10 +21,14 @@
 
 ## [Unreleased](https://github.com/datafusion-contrib/datafusion-python/tree/HEAD)
 
-[Full Changelog](https://github.com/datafusion-contrib/datafusion-python/compare/0.5.0...HEAD)
+[Full Changelog](https://github.com/datafusion-contrib/datafusion-python/compare/0.5.1...HEAD)
 
 **Merged pull requests:**
 
+- use \_\_getitem\_\_ for df column selection [\#41](https://github.com/datafusion-contrib/datafusion-python/pull/41) ([Jimexist](https://github.com/Jimexist))
+- fix demo in readme [\#40](https://github.com/datafusion-contrib/datafusion-python/pull/40) ([Jimexist](https://github.com/Jimexist))
+- Implement select_columns [\#39](https://github.com/datafusion-contrib/datafusion-python/pull/39) ([andygrove](https://github.com/andygrove))
+- update readme and changelog [\#38](https://github.com/datafusion-contrib/datafusion-python/pull/38) ([Jimexist](https://github.com/Jimexist))
 - Add PyDataFrame.explain [\#36](https://github.com/datafusion-contrib/datafusion-python/pull/36) ([andygrove](https://github.com/andygrove))
 - Release 0.5.0 [\#34](https://github.com/datafusion-contrib/datafusion-python/pull/34) ([Jimexist](https://github.com/Jimexist))
 - disable nightly in workflow [\#33](https://github.com/datafusion-contrib/datafusion-python/pull/33) ([Jimexist](https://github.com/Jimexist))
@@ -45,6 +49,14 @@
 - add \_\_version\_\_ attribute to datafusion object [\#3](https://github.com/datafusion-contrib/datafusion-python/pull/3) ([tfeda](https://github.com/tfeda))
 - fix ci by fixing directories [\#2](https://github.com/datafusion-contrib/datafusion-python/pull/2) ([Jimexist](https://github.com/Jimexist))
 - setup workflow [\#1](https://github.com/datafusion-contrib/datafusion-python/pull/1) ([Jimexist](https://github.com/Jimexist))
+
+## [0.5.1](https://github.com/datafusion-contrib/datafusion-python/tree/0.5.1) (2022-03-15)
+
+[Full Changelog](https://github.com/datafusion-contrib/datafusion-python/compare/0.5.1-rc1...0.5.1)
+
+## [0.5.1-rc1](https://github.com/datafusion-contrib/datafusion-python/tree/0.5.1-rc1) (2022-03-15)
+
+[Full Changelog](https://github.com/datafusion-contrib/datafusion-python/compare/0.5.0...0.5.1-rc1)
 
 ## [0.5.0](https://github.com/datafusion-contrib/datafusion-python/tree/0.5.0) (2022-03-10)
 

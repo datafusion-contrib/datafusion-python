@@ -125,7 +125,7 @@ python -m pip install datafusion
 
 You can verify the installation by running:
 
-```text
+```python
 >>> import datafusion
 >>> datafusion.__version__
 '0.5.0'

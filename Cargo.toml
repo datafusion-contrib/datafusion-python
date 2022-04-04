@@ -38,8 +38,8 @@ uuid = { version = "0.8", features = ["v4"] }
 mimalloc = { version = "*", default-features = false }
 
 [lib]
-name = "_internal"
-crate-type = ["cdylib"]
+name = "datafusion_python"
+crate-type = ["cdylib", "rlib"]
 
 [package.metadata.maturin]
 name = "datafusion._internal"

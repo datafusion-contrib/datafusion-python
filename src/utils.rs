@@ -25,7 +25,7 @@ use datafusion::physical_plan::functions::Volatility;
 use crate::errors::DataFusionError;
 
 /// Utility to collect rust futures with GIL released
-pub(crate) fn wait_for_future<F: Future>(py: Python, f: F) -> F::Output
+pub fn wait_for_future<F: Future>(py: Python, f: F) -> F::Output
 where
     F: Send,
     F::Output: Send,

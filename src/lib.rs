@@ -18,15 +18,15 @@
 use mimalloc::MiMalloc;
 use pyo3::prelude::*;
 
-mod catalog;
+pub mod catalog;
 mod context;
 mod dataframe;
-mod errors;
+pub mod errors;
 mod expression;
 mod functions;
 mod udaf;
 mod udf;
-mod utils;
+pub mod utils;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

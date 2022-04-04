@@ -29,7 +29,7 @@ use datafusion::datasource::MemTable;
 use datafusion::execution::context::ExecutionContext;
 use datafusion::prelude::CsvReadOptions;
 
-use crate::catalog::PyCatalog;
+use crate::catalog::{PyCatalog, PyTable};
 use crate::dataframe::PyDataFrame;
 use crate::errors::DataFusionError;
 use crate::udf::PyScalarUDF;
@@ -78,6 +78,20 @@ impl PyExecutionContext {
 
         let df = PyDataFrame::new(table);
         Ok(df)
+    }
+
+    fn register_table(&mut self, name: &str, table: &PyTable) -> PyResult<()> {
+        self.ctx
+            .register_table(name, table.table())
+            .map_err(DataFusionError::from)?;
+        Ok(())
+    }
+
+    fn deregister_table(&mut self, name: &str) -> PyResult<()> {
+        self.ctx
+            .deregister_table(name)
+            .map_err(DataFusionError::from)?;
+        Ok(())
     }
 
     fn register_record_batches(

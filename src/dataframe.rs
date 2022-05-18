@@ -34,12 +34,12 @@ use std::sync::Arc;
 #[pyclass(name = "DataFrame", module = "datafusion", subclass)]
 #[derive(Clone)]
 pub(crate) struct PyDataFrame {
-    df: Arc<dyn DataFrame>,
+    df: Arc<DataFrame>,
 }
 
 impl PyDataFrame {
     /// creates a new PyDataFrame
-    pub fn new(df: Arc<dyn DataFrame>) -> Self {
+    pub fn new(df: Arc<DataFrame>) -> Self {
         Self { df }
     }
 }

@@ -1,11 +1,11 @@
 import pytest
-from datafusion import ExecutionContext
+from datafusion import SessionContext
 import pyarrow as pa
 
 
 @pytest.fixture
 def ctx():
-    return ExecutionContext()
+    return SessionContext()
 
 
 @pytest.fixture

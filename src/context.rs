@@ -26,8 +26,8 @@ use pyo3::prelude::*;
 use datafusion::arrow::datatypes::Schema;
 use datafusion::arrow::record_batch::RecordBatch;
 use datafusion::datasource::MemTable;
-use datafusion::execution::context::ExecutionContext;
-use datafusion::prelude::CsvReadOptions;
+use datafusion::execution::context::SessionContext;
+use datafusion::prelude::{CsvReadOptions, ParquetReadOptions};
 
 use crate::catalog::{PyCatalog, PyTable};
 use crate::dataframe::PyDataFrame;
@@ -35,21 +35,21 @@ use crate::errors::DataFusionError;
 use crate::udf::PyScalarUDF;
 use crate::utils::wait_for_future;
 
-/// `PyExecutionContext` is able to plan and execute DataFusion plans.
+/// `PySessionContext` is able to plan and execute DataFusion plans.
 /// It has a powerful optimizer, a physical planner for local execution, and a
 /// multi-threaded execution engine to perform the execution.
-#[pyclass(name = "ExecutionContext", module = "datafusion", subclass, unsendable)]
-pub(crate) struct PyExecutionContext {
-    ctx: ExecutionContext,
+#[pyclass(name = "SessionContext", module = "datafusion", subclass, unsendable)]
+pub(crate) struct PySessionContext {
+    ctx: SessionContext,
 }
 
 #[pymethods]
-impl PyExecutionContext {
+impl PySessionContext {
     // TODO(kszucs): should expose the configuration options as keyword arguments
     #[new]
     fn new() -> Self {
-        PyExecutionContext {
-            ctx: ExecutionContext::new(),
+        PySessionContext {
+            ctx: SessionContext::new(),
         }
     }
 
@@ -108,7 +108,9 @@ impl PyExecutionContext {
     }
 
     fn register_parquet(&mut self, name: &str, path: &str, py: Python) -> PyResult<()> {
-        let result = self.ctx.register_parquet(name, path);
+        let result = self
+            .ctx
+            .register_parquet(name, path, ParquetReadOptions::default());
         wait_for_future(py, result).map_err(DataFusionError::from)?;
         Ok(())
     }

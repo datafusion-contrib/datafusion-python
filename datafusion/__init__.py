@@ -29,7 +29,7 @@ import pyarrow as pa
 from ._internal import (
     AggregateUDF,
     DataFrame,
-    ExecutionContext,
+    SessionContext,
     Expression,
     ScalarUDF,
 )
@@ -40,7 +40,7 @@ __version__ = importlib_metadata.version(__name__)
 
 __all__ = [
     "DataFrame",
-    "ExecutionContext",
+    "SessionContext",
     "Expression",
     "AggregateUDF",
     "ScalarUDF",

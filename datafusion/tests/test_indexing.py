@@ -18,12 +18,12 @@
 import pyarrow as pa
 import pytest
 
-from datafusion import ExecutionContext
+from datafusion import SessionContext
 
 
 @pytest.fixture
 def df():
-    ctx = ExecutionContext()
+    ctx = SessionContext()
 
     # create a RecordBatch and a new DataFrame from it
     batch = pa.RecordBatch.from_arrays(

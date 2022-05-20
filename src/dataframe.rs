@@ -23,7 +23,6 @@ use datafusion::arrow::util::pretty;
 use datafusion::dataframe::DataFrame;
 use datafusion::logical_plan::JoinType;
 use pyo3::exceptions::PyTypeError;
-use pyo3::mapping::PyMappingProtocol;
 use pyo3::prelude::*;
 use pyo3::types::PyTuple;
 use std::sync::Arc;
@@ -34,18 +33,37 @@ use std::sync::Arc;
 #[pyclass(name = "DataFrame", module = "datafusion", subclass)]
 #[derive(Clone)]
 pub(crate) struct PyDataFrame {
-    df: Arc<dyn DataFrame>,
+    df: Arc<DataFrame>,
 }
 
 impl PyDataFrame {
     /// creates a new PyDataFrame
-    pub fn new(df: Arc<dyn DataFrame>) -> Self {
+    pub fn new(df: Arc<DataFrame>) -> Self {
         Self { df }
     }
 }
 
 #[pymethods]
 impl PyDataFrame {
+    fn __getitem__(&self, key: PyObject) -> PyResult<Self> {
+        Python::with_gil(|py| {
+            if let Ok(key) = key.extract::<&str>(py) {
+                self.select_columns(vec![key])
+            } else if let Ok(tuple) = key.extract::<&PyTuple>(py) {
+                let keys = tuple
+                    .iter()
+                    .map(|item| item.extract::<&str>())
+                    .collect::<PyResult<Vec<&str>>>()?;
+                self.select_columns(keys)
+            } else if let Ok(keys) = key.extract::<Vec<&str>>(py) {
+                self.select_columns(keys)
+            } else {
+                let message = "DataFrame can only be indexed by string index or indices";
+                Err(PyTypeError::new_err(message))
+            }
+        })
+    }
+
     /// Returns the schema from the logical plan
     fn schema(&self) -> Schema {
         self.df.schema().into()
@@ -140,27 +158,5 @@ impl PyDataFrame {
         let df = self.df.explain(verbose, analyze)?;
         let batches = wait_for_future(py, df.collect())?;
         Ok(pretty::print_batches(&batches)?)
-    }
-}
-
-#[pyproto]
-impl PyMappingProtocol<'_> for PyDataFrame {
-    fn __getitem__(&self, key: PyObject) -> PyResult<Self> {
-        Python::with_gil(|py| {
-            if let Ok(key) = key.extract::<&str>(py) {
-                self.select_columns(vec![key])
-            } else if let Ok(tuple) = key.extract::<&PyTuple>(py) {
-                let keys = tuple
-                    .iter()
-                    .map(|item| item.extract::<&str>())
-                    .collect::<PyResult<Vec<&str>>>()?;
-                self.select_columns(keys)
-            } else if let Ok(keys) = key.extract::<Vec<&str>>(py) {
-                self.select_columns(keys)
-            } else {
-                let message = "DataFrame can only be indexed by string index or indices";
-                Err(PyTypeError::new_err(message))
-            }
-        })
     }
 }

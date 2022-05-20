@@ -15,14 +15,11 @@
 // specific language governing permissions and limitations
 // under the License.
 
-use std::future::Future;
-
-use pyo3::prelude::*;
-use tokio::runtime::Runtime;
-
-use datafusion::physical_plan::functions::Volatility;
-
 use crate::errors::DataFusionError;
+use datafusion_expr::Volatility;
+use pyo3::prelude::*;
+use std::future::Future;
+use tokio::runtime::Runtime;
 
 /// Utility to collect rust futures with GIL released
 pub fn wait_for_future<F: Future>(py: Python, f: F) -> F::Output

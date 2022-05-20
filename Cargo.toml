@@ -17,7 +17,7 @@
 
 [package]
 name = "datafusion-python"
-version = "0.5.2"
+version = "0.6.0"
 homepage = "https://github.com/apache/arrow"
 repository = "https://github.com/apache/arrow"
 authors = ["Apache Arrow <dev@arrow.apache.org>"]
@@ -30,10 +30,10 @@ rust-version = "1.57"
 [dependencies]
 tokio = { version = "1.0", features = ["macros", "rt", "rt-multi-thread", "sync"] }
 rand = "0.7"
-pyo3 = { version = "~0.15", features = ["extension-module", "abi3", "abi3-py36"] }
-datafusion = { version = "^7.0.0", features = ["pyarrow"] }
-datafusion-expr = { version = "^7.0.0" }
-datafusion-common = { version = "^7.0.0", features = ["pyarrow"] }
+pyo3 = { version = "~0.16.5", features = ["extension-module", "abi3", "abi3-py37"] }
+datafusion = { version = "^8.0.0", features = ["pyarrow"] }
+datafusion-expr = { version = "^8.0.0" }
+datafusion-common = { version = "^8.0.0", features = ["pyarrow"] }
 uuid = { version = "0.8", features = ["v4"] }
 mimalloc = { version = "*", default-features = false }
 

@@ -18,8 +18,8 @@
 use pyo3::{prelude::*, wrap_pyfunction};
 
 use datafusion::logical_plan;
-
-use datafusion::physical_plan::{aggregates::AggregateFunction, functions::BuiltinScalarFunction};
+use datafusion::physical_plan::aggregates::AggregateFunction;
+use datafusion_expr::BuiltinScalarFunction;
 
 use crate::errors;
 use crate::expression::PyExpr;
@@ -113,7 +113,7 @@ fn window(
     order_by: Option<Vec<PyExpr>>,
 ) -> PyResult<PyExpr> {
     use std::str::FromStr;
-    let fun = datafusion::physical_plan::window_functions::WindowFunction::from_str(name)
+    let fun = datafusion_expr::window_function::WindowFunction::from_str(name)
         .map_err(|e| -> errors::DataFusionError { e.into() })?;
     Ok(PyExpr {
         expr: datafusion::logical_plan::Expr::WindowFunction {

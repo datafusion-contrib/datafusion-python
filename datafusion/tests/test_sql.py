@@ -105,11 +105,17 @@ def test_register_parquet_partitioned(ctx, tmp_path):
     pa.parquet.write_table(table.slice(3, 4), dir_root / "grp=b/file.parquet")
 
     ctx.register_parquet(
-        "datapp", str(dir_root), table_partition_cols=["grp"],
-        parquet_pruning=True, file_extension=".parquet")
+        "datapp",
+        str(dir_root),
+        table_partition_cols=["grp"],
+        parquet_pruning=True,
+        file_extension=".parquet",
+    )
     assert ctx.tables() == {"datapp"}
 
-    result = ctx.sql("SELECT grp, COUNT(*) AS cnt FROM datapp GROUP BY grp").collect()
+    result = ctx.sql(
+        "SELECT grp, COUNT(*) AS cnt FROM datapp GROUP BY grp"
+    ).collect()
     result = pa.Table.from_batches(result)
 
     rd = result.to_pydict()

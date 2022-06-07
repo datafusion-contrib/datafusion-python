@@ -20,6 +20,7 @@
 # DataFusion in Python
 
 [![Python test](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/test.yaml/badge.svg)](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/test.yaml)
+[![Python Release Build](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/build.yml/badge.svg)](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/build.yml)
 
 This is a Python library that binds to [Apache Arrow](https://arrow.apache.org/) in-memory query engine [DataFusion](https://github.com/apache/arrow-datafusion).
 
@@ -140,7 +141,7 @@ You can verify the installation by running:
 ```python
 >>> import datafusion
 >>> datafusion.__version__
-'0.5.2'
+'0.6.0'
 ```
 
 ## How to develop

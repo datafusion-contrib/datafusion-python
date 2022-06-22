@@ -107,10 +107,26 @@ impl PySessionContext {
         Ok(())
     }
 
-    fn register_parquet(&mut self, name: &str, path: &str, py: Python) -> PyResult<()> {
-        let result = self
-            .ctx
-            .register_parquet(name, path, ParquetReadOptions::default());
+    #[allow(clippy::too_many_arguments)]
+    #[args(
+        table_partition_cols = "vec![]",
+        parquet_pruning = "true",
+        file_extension = "\".parquet\""
+    )]
+    fn register_parquet(
+        &mut self,
+        name: &str,
+        path: &str,
+        table_partition_cols: Vec<String>,
+        parquet_pruning: bool,
+        file_extension: &str,
+        py: Python,
+    ) -> PyResult<()> {
+        let mut options = ParquetReadOptions::default()
+            .table_partition_cols(table_partition_cols)
+            .parquet_pruning(parquet_pruning);
+        options.file_extension = file_extension;
+        let result = self.ctx.register_parquet(name, path, options);
         wait_for_future(py, result).map_err(DataFusionError::from)?;
         Ok(())
     }

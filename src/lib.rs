@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+#[cfg(feature = "mimalloc")]
 use mimalloc::MiMalloc;
 use pyo3::prelude::*;
 
@@ -28,6 +29,7 @@ mod udaf;
 mod udf;
 pub mod utils;
 
+#[cfg(feature = "mimalloc")]
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 

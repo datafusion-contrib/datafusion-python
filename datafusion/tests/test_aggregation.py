@@ -44,5 +44,5 @@ def test_built_in_aggregation(df):
     result = df.collect()[0]
     assert result.column(0) == pa.array([3])
     assert result.column(1) == pa.array([1])
-    assert result.column(2) == pa.array([3], type=pa.uint64())
+    assert result.column(2) == pa.array([3], type=pa.int64())
     assert result.column(3) == pa.array([2], type=pa.uint64())

@@ -102,7 +102,7 @@ impl PyDataFrame {
     }
 
     fn limit(&self, count: usize) -> PyResult<Self> {
-        let df = self.df.limit(count)?;
+        let df = self.df.limit(None, Some(count))?;
         Ok(Self::new(df))
     }
 
@@ -119,7 +119,7 @@ impl PyDataFrame {
     /// Print the result, 20 lines by default
     #[args(num = "20")]
     fn show(&self, py: Python, num: usize) -> PyResult<()> {
-        let df = self.df.limit(num)?;
+        let df = self.df.limit(None, Some(num))?;
         let batches = wait_for_future(py, df.collect())?;
         Ok(pretty::print_batches(&batches)?)
     }
@@ -148,7 +148,7 @@ impl PyDataFrame {
 
         let df = self
             .df
-            .join(right.df, join_type, &join_keys.0, &join_keys.1)?;
+            .join(right.df, join_type, &join_keys.0, &join_keys.1, None)?;
         Ok(Self::new(df))
     }
 

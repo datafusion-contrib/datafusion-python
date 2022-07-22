@@ -17,6 +17,10 @@
   under the License.
 -->
 
+# DataFusion Python Bindings Have Now Moved
+
+Development of the DataFusion Python bindings has now moved to https://github.com/apache/arrow-datafusion-python
+
 # DataFusion in Python
 
 [![Python test](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/test.yaml/badge.svg)](https://github.com/datafusion-contrib/datafusion-python/actions/workflows/test.yaml)
